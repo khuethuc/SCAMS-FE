@@ -8,3 +8,8 @@ export interface HeaderProps {
   user?: { name: string; email: string };
   onLogout?: () => void;
 }
+
+export interface LoginProps {
+  onLogin?: (email: string, password: string) => void;
+  onSwitchToRegister?: () => void;
+}
