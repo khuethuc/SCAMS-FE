@@ -5,6 +5,7 @@ import { LogIn, UserPlus, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { HeaderProps } from "@/type/type";
+import { LOGIN_PATH, REGISTER_PATH } from "@/const/path";
 
 export default function Header({
   currentPage,
@@ -75,7 +76,7 @@ export default function Header({
                   size="sm"
                   className={`flex items-center gap-2 rounded-lg px-4 py-2 ${loginButtonClasses}`}
                 >
-                  <Link href="/login">
+                  <Link href={LOGIN_PATH}>
                     <LogIn className="h-4 w-4" />
                     <span>Login</span>
                   </Link>
@@ -87,7 +88,7 @@ export default function Header({
                   size="sm"
                   className={`flex items-center gap-2 rounded-lg px-4 py-2 ${registerButtonClasses}`}
                 >
-                  <Link href="/register">
+                  <Link href={REGISTER_PATH}>
                     <UserPlus className="h-4 w-4" />
                     <span>Register</span>
                   </Link>
