@@ -13,3 +13,8 @@ export interface LoginProps {
   onLogin?: (email: string, password: string) => void;
   onSwitchToRegister?: () => void;
 }
+
+export interface RegisterProps {
+  onRegister?: (name: string, email: string, password: string) => void;
+  onSwitchToLogin?: () => void;
+}
