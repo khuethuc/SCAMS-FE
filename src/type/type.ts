@@ -29,3 +29,20 @@ export interface BookingProps {
     notes: string,
    ) => void;
 }
+
+export interface BookingInfo {
+  id: string;
+  room: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  courseName: string,
+  notes: string,
+}
+
+export interface UpdateBookingProps {
+  existingBooking?: BookingInfo;
+  onBookingUpdate?: (
+    BookingInfo: BookingInfo
+   ) => void;
+}
