@@ -79,7 +79,7 @@ export default function Login({
       }
 
       // Redirect to book room page
-      router.push(BOOK_ROOM_PATH);
+      window.location.href = BOOK_ROOM_PATH;
     } catch (err) {
       console.error("Login error:", err);
       setError("Network error. Please check your connection and try again");
