@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
 import UpdateRoom from "@/features/room_service/UpdateRoom";
 import { BookingInfo } from "@/type/type";
 
@@ -15,10 +16,10 @@ const mockdata: BookingInfo = {
 
 export default function BookRoomPage() {
   return (
-    <>
+    <ProtectedRoute>
       <UpdateRoom existingBooking={mockdata} onBookingUpdate={(updatedBooking) => {
         console.log("Updated Booking:", updatedBooking);
       }} />
-    </>
+    </ProtectedRoute>
   );
 }

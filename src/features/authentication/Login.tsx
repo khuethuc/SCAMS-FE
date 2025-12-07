@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { LogIn } from "lucide-react";
 import Link from "next/link";
-import { REGISTER_PATH } from "@/const/path";
+import { useRouter } from "next/navigation";
+import { REGISTER_PATH, BOOK_ROOM_PATH } from "@/const/path";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +23,68 @@ export default function Login({
   onLogin,
   onSwitchToRegister,
 }: LoginProps = {}) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (email && password) {
-      onLogin?.(email, password);
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle error responses
+        if (data.error) {
+          switch (data.error.code) {
+            case "INVALID_REQUEST":
+              setError("Please enter both email and password");
+              break;
+            case "INVALID_CREDENTIALS":
+              setError("Email or password is incorrect");
+              break;
+            case "FORBIDDEN_ROLE":
+              setError("You are not allowed to access this system");
+              break;
+            default:
+              setError("An error occurred. Please try again");
+          }
+        } else {
+          setError("An error occurred. Please try again");
+        }
+        return;
+      }
+
+      // Success - store role and redirect based on role
+      const { role } = data;
+      localStorage.setItem("userRole", role);
+      localStorage.setItem("userEmail", email);
+
+      // Call onLogin callback if provided
+      if (onLogin) {
+        onLogin(email, password);
+      }
+
+      // Redirect to book room page
+      router.push(BOOK_ROOM_PATH);
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Network error. Please check your connection and try again");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -44,6 +100,13 @@ export default function Login({
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-700">
@@ -100,10 +163,11 @@ export default function Login({
             {/* Submit */}
             <Button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              disabled={isLoading}
+              className="flex w-full items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
             >
               <LogIn className="h-5 w-5" />
-              <span>Sign In</span>
+              <span>{isLoading ? "Signing In..." : "Sign In"}</span>
             </Button>
           </form>
 
