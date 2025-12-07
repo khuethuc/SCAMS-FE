@@ -29,7 +29,7 @@ export default function Register({
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -44,7 +44,50 @@ export default function Register({
     }
 
     if (name && email && password) {
-      onRegister?.(name, email, password);
+      try {
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const response = await fetch(`${apiUrl}/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullname: name,
+            email,
+            password,
+            role: "lecturer",
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          if (data.error) {
+            switch (data.error.code) {
+              case "INVALID_REQUEST":
+                setError(data.error.message || "Missing required fields");
+                break;
+              case "INVALID_EMAIL_FORMAT":
+                setError("Email format is invalid");
+                break;
+              case "EMAIL_ALREADY_EXISTS":
+                setError("User with this email already registered");
+                break;
+              default:
+                setError(data.error.message || "Registration failed");
+            }
+          } else {
+            setError("Registration failed");
+          }
+          return;
+        }
+        // Redirect to login on success
+        if (onRegister) {
+          onRegister(name, email, password);
+        }
+        window.location.href = LOGIN_PATH;
+      } catch (err) {
+        setError("Network error. Please try again");
+      }
     }
   };
 
