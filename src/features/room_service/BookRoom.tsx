@@ -10,34 +10,87 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent} from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookingProps } from "@/type/type";
+import { useRouter } from "next/navigation";
 
 export default function BookRoom(
   {onBookingCreate}: BookingProps = {}
 ) {
   const [activeTab, setActiveTab] = useState("book");
-  
   const [formData, setFormData] = useState({
     room: "",
     date: "",
-    startTime: "",
-    endTime: "",
-    courseName: "",
+    start_time: "",
+    end_time: "",
+    course_name: "",
+    course_id: "",
     notes: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   console.log("Submitted:", formData);
+  //   onBookingCreate?.(
+  //     formData.room,
+  //     formData.date,
+  //     formData.start_time,
+  //     formData.end_time,
+  //     formData.course_name,
+  //     formData.notes
+  //   );
+  //   alert("Booking Created!");
+  // };
+
+
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const courseIds = [
+    { name: "Computer Network", id: "CO1001" },
+    { name: "Database Management System", id: "CO2002" },
+    { name: "Software Engineering", id: "CO3003" },
+    { name: "Operating Systems", id: "CO4004" },
+  ];
+  
+  const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted:", formData);
-    onBookingCreate?.(
-      formData.room,
-      formData.date,
-      formData.startTime,
-      formData.endTime,
-      formData.courseName,
-      formData.notes
-    );
-    alert("Booking Created!");
-  };
+    setIsSubmitting(true); 
+  
+    try {
+      // The Network Request
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "role" : "lecturer"
+          },
+          body: JSON.stringify({
+            user_id: "",
+            date: formData.date,
+            start_time: formData.start_time,
+            end_time: formData.end_time,
+            course_id: formData.course_id,
+            course_name: formData.course_name,
+            notes: formData.notes,
+          }),
+        });
+  
+        // 3. Handle Errors (e.g., 400 Bad Request, 500 Server Error)
+        if (!response.ok) {
+          throw new Error("Failed to create booking");
+        }
+  
+        // 4. Success!
+        alert("Booking Successful!");
+        router.push("/schedule"); // Redirect user to the schedule page
+  
+      } catch (error) {
+        console.error(error);
+        alert("Something went wrong. Please try again.");
+      } finally {
+        setIsSubmitting(false); // 5. Stop Loading (Unlock the UI)
+      }
+    };
 
   return (
     <div className="flex justify-center p-8 bg-gray-50 min-h-screen">
@@ -69,7 +122,7 @@ export default function BookRoom(
 
         <CardContent className="p-8">
           {activeTab === "book" ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleCreateBooking} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Room Selector */}
@@ -99,17 +152,19 @@ export default function BookRoom(
               <div className="grid grid-cols-2 gap-6">
                  <div className="space-y-2">
                     <Label>Start Time</Label>
-                    <Input type="time" onChange={(e) => setFormData({...formData, startTime: e.target.value})} />
+                    <Input type="time" onChange={(e) => setFormData({...formData, start_time: e.target.value})} />
                  </div>
                  <div className="space-y-2">
                     <Label>End Time</Label>
-                    <Input type="time" onChange={(e) => setFormData({...formData, endTime: e.target.value})} />
+                    <Input type="time" onChange={(e) => setFormData({...formData, end_time: e.target.value})} />
                  </div>
               </div>
 
               <div className="space-y-2 w-full" >
                 <Label>Course Name</Label>
-                <Select onValueChange={(val) => setFormData({...formData, courseName: val})}>
+                <Select onValueChange={(val) => {
+                    const courseId = courseIds.find(course => course.name === val)?.id || "";
+                    setFormData({...formData, course_id: courseId, course_name: val})}}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a course..." />
                     </SelectTrigger>
@@ -131,8 +186,12 @@ export default function BookRoom(
                 </Textarea>
               </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg">
-                <Save className="mr-2 h-5 w-5" /> Create Booking
+              <Button disabled={isSubmitting} type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg">
+                {isSubmitting ? (
+                <>Processing...</> 
+              ) : (
+                <><Save className="mr-2 h-5 w-5" /> Create Booking</>
+              )}
               </Button>
             </form>
           ) : (
