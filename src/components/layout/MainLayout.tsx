@@ -35,8 +35,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      await fetch(`${apiUrl}/auth/logout`, {
+      await fetch(`https://ase-251.onrender.com/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

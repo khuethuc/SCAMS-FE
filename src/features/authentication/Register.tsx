@@ -45,20 +45,21 @@ export default function Register({
 
     if (name && email && password) {
       try {
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const response = await fetch(`${apiUrl}/auth/register`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fullname: name,
-            email,
-            password,
-            role: "lecturer",
-          }),
-        });
+        const response = await fetch(
+          `https://ase-251.onrender.com/auth/register`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fullname: name,
+              email,
+              password,
+              role: "lecturer",
+            }),
+          }
+        );
         const data = await response.json();
         if (!response.ok) {
           if (data.error) {

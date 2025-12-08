@@ -35,8 +35,7 @@ export default function Login({
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      const response = await fetch(`https://ase-251.onrender.com/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
