@@ -27,7 +27,7 @@ export interface BookingProps {
     endTime: string,
     courseName: string,
     notes: string,
-   ) => void;
+  ) => Promise<void>;
 }
 
 export interface BookingInfo {
