@@ -56,7 +56,7 @@ export default function BookRoom(
   
     try {
       // The Network Request
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = "https://ase-251.onrender.com";
       const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking`, {
           method: "POST",
           headers: {
@@ -133,10 +133,10 @@ export default function BookRoom(
                       <SelectValue placeholder="Select a room..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="101">Room 101</SelectItem>
-                      <SelectItem value="202">Room 202</SelectItem>
-                      <SelectItem value="303">Room 303</SelectItem>
-                      <SelectItem value="404">Room 404</SelectItem>
+                      <SelectItem value="A-101">Room A-101</SelectItem>
+                      <SelectItem value="A-202">Room A-202</SelectItem>
+                      <SelectItem value="B-303">Room B-303</SelectItem>
+                      <SelectItem value="B-404">Room B-404</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
