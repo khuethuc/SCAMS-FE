@@ -2,8 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import { Search as SearchIcon } from "lucide-react";
+import { SearchProps } from "@/type/type";
 
-export default function Search() {
+export default function Search({ value, onChange }: SearchProps) {
   return (
     <div className="relative w-full">
       <SearchIcon
@@ -14,6 +15,8 @@ export default function Search() {
       <Input
         type="text"
         placeholder="Search by course name, code, or lecturer..."
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
         className="pl-10 py-5 rounded-xl"
       />
     </div>

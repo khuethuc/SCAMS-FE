@@ -23,7 +23,7 @@ export interface RegisterProps {
 }
 
 // * * * Room services * * * //
-
+// Book room
 export interface BookingProps {
   onBookingCreate?: (
     room: string,
@@ -45,6 +45,7 @@ export interface BookingInfo {
   notes: string,
 }
 
+// Update room
 export interface UpdateBookingProps {
   existingBooking?: BookingInfo;
   onBookingUpdate?: (
@@ -52,6 +53,7 @@ export interface UpdateBookingProps {
    ) => void;
 }
 
+// View schedule
 export interface BookingCardProps {
   courseName: string;
   courseCode: string;
@@ -63,12 +65,65 @@ export interface BookingCardProps {
   lecturer: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  createdBy?: string;
+  canManage?: boolean;
+  date?: string;
 }
 
 export interface ScheduleProps {
   items: BookingCardProps[];
   pageSize?: number;
 }
+
+export type InformationFormProps = {
+  selectedTab: "room" | "my";
+  onTabChange: (nextValue: "room" | "my") => void;
+  canViewMySchedule: boolean;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  filters: ScheduleFilters;
+  onFiltersChange: (nextFilters: ScheduleFilters) => void;
+  availableRooms: string[];
+};
+
+export type ScheduleFilters = {
+  room: string | null;
+  day: "this-week" | "today" | "tomorrow" | null;
+  startDate: Date | null;
+  endDate: Date | null;
+};
+
+export type ScheduleTabsProps = {
+  value: "room" | "my";
+  onChange: (nextValue: "room" | "my") => void;
+  isAuthenticated: boolean;
+};
+
+export type ScheduleFilterProps = {
+  filters: ScheduleFilters;
+  onFiltersChange: (nextFilters: ScheduleFilters) => void;
+  rooms: string[];
+};
+
+export type TabValue = "room" | "my";
+
+export type RawBooking = {
+  booking_id?: string;
+  room_id?: string;
+  lecturer_id?: string;
+  created_by?: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  course_id?: string;
+  course_name?: string;
+  notes?: string;
+};
+
+export type SearchProps = {
+  value: string;
+  onChange: (value: string) => void;
+};
 
 // * * * Pagination * * * //
 export type PaginationProps = {
