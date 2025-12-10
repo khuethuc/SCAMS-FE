@@ -5,7 +5,7 @@ import { LogIn, UserPlus, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { HeaderProps } from "@/type/type";
-import { LOGIN_PATH, REGISTER_PATH } from "@/const/path";
+import { LOGIN_PATH, REGISTER_PATH, DEFAULT_PATH } from "@/const/path";
 
 export default function Header({
   currentPage,
@@ -51,10 +51,10 @@ export default function Header({
             {!isLoggedIn && (
               <>
                 <a
-                  href="#"
+                  href={DEFAULT_PATH}
                   className="hidden text-gray-600 transition-colors hover:text-blue-600 md:inline"
                 >
-                  About
+                  Home
                 </a>
                 <a
                   href="#"
