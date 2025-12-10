@@ -6,7 +6,7 @@ export type MainLayoutProps = {
 export interface HeaderProps {
   currentPage?: "login" | "register";
   isAuthenticated?: boolean;
-  user?: { name: string; email: string };
+  user?: { name: string; email: string; id?: string };
   onLogout?: () => void;
 }
 

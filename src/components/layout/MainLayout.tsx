@@ -10,40 +10,57 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<
-    { name: string; email: string } | undefined
+    { name: string; email: string; id?: string } | undefined
   >();
 
   useEffect(() => {
+    const AUTH_SYNC_EVENT = "scams-auth-change";
+
     const syncAuth = () => {
       const userEmail = localStorage.getItem("userEmail");
       const userRole = localStorage.getItem("userRole");
-      if (userEmail && userRole) {
-        setIsAuthenticated(true);
+      const userName = localStorage.getItem("userName");
+      const userId = localStorage.getItem("userId");
+
+      const hasIdentity = Boolean(userEmail || userId);
+      const nextAuthenticated = Boolean(userRole && hasIdentity);
+
+      setIsAuthenticated(nextAuthenticated);
+
+      if (nextAuthenticated) {
+        const fallbackName = userEmail?.split("@")[0] ?? userId ?? "User";
         setUser({
-          name: userEmail.split("@")[0],
-          email: userEmail,
+          // prefer a stored userName (set during login) otherwise fallback to derived identity
+          name: userName ?? fallbackName,
+          email: userEmail ?? userId ?? "",
+          id: userId ?? undefined,
         });
       } else {
-        setIsAuthenticated(false);
         setUser(undefined);
       }
     };
+
+    // run once on mount
     syncAuth();
+
+    // listen for both storage events (cross-tab) and our custom auth-change event
     window.addEventListener("storage", syncAuth);
-    return () => window.removeEventListener("storage", syncAuth);
+    window.addEventListener(AUTH_SYNC_EVENT, syncAuth);
+
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener(AUTH_SYNC_EVENT, syncAuth);
+    };
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await fetch(`https://ase-251.onrender.com/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (err) {}
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
     setIsAuthenticated(false);
     setUser(undefined);
+    window.dispatchEvent(new Event("scams-auth-change"));
     router.push("/");
   };
 

@@ -67,10 +67,12 @@ export default function Login({
         return;
       }
 
-      // Success - store role and redirect based on role
-      const { role } = data;
-      localStorage.setItem("userRole", role);
-      localStorage.setItem("userEmail", email);
+      // Success
+      localStorage.setItem("userRole", data.role);
+      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("userId", data.user_id);
+      localStorage.setItem("userName", data.fullname);
+      window.dispatchEvent(new Event("scams-auth-change"));
 
       // Call onLogin callback if provided
       if (onLogin) {
