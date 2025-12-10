@@ -1,3 +1,4 @@
+// * * * Layout * * * //
 export type MainLayoutProps = {
   children: React.ReactNode;
 };
@@ -9,6 +10,8 @@ export interface HeaderProps {
   onLogout?: () => void;
 }
 
+// * * * Authentication * * * //
+
 export interface LoginProps {
   onLogin?: (email: string, password: string) => void;
   onSwitchToRegister?: () => void;
@@ -18,6 +21,8 @@ export interface RegisterProps {
   onRegister?: (name: string, email: string, password: string) => void;
   onSwitchToLogin?: () => void;
 }
+
+// * * * Room services * * * //
 
 export interface BookingProps {
   onBookingCreate?: (
@@ -46,3 +51,31 @@ export interface UpdateBookingProps {
     BookingInfo: BookingInfo
    ) => void;
 }
+
+export interface BookingCardProps {
+  courseName: string;
+  courseCode: string;
+  typeLabel?: string;
+  weekday: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+  lecturer: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
+
+export interface ScheduleProps {
+  items: BookingCardProps[];
+  pageSize?: number;
+}
+
+// * * * Pagination * * * //
+export type PaginationProps = {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  siblingCount?: number;
+};
+
+export type PageItem = number | "dots";

@@ -1,10 +1,5 @@
-import Login from "@/features/authentication/Login";
-import PublicRoute from "@/components/PublicRoute";
+import ViewSchedule from "@/features/schedule/ViewSchedule";
 
 export default function Home() {
-  return (
-    <PublicRoute>
-      <Login />
-    </PublicRoute>
-  );
+  return <ViewSchedule />;
 }
