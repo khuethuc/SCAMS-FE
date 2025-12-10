@@ -49,10 +49,46 @@ export default function BookRoom(
     { name: "Software Engineering", id: "CO3003" },
     { name: "Operating Systems", id: "CO4004" },
   ];
+
+  const switchTab = () => {
+    router.push("/");
+  }
+
+  function validateForm() {
+    if (!formData.room) {
+      alert("Please select a room.");
+      return false;
+    }
+    if (!formData.date) {
+      alert("Please select a date.");
+      return false;
+    }
+    if (formData.date < new Date().toISOString().split("T")[0]) {
+      alert("Date cannot be in the past.");
+      return false;
+    }
+    if (!formData.start_time || !formData.end_time) {
+      alert("Please select both start and end times.");
+      return false;
+    }
+    if (formData.start_time >= formData.end_time) {
+      alert("End time must be after start time.");
+      return false;
+    }
+    if (!formData.course_name) {
+      alert("Please select a course name.");
+      return false;
+    }
+    return true;
+  }
   
   const handleCreateBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true); 
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      return; // Stop here! Don't submit.
+      }
   
     try {
       // The Network Request
@@ -82,7 +118,7 @@ export default function BookRoom(
   
         // 4. Success!
         alert("Booking Successful!");
-        router.push("/schedule"); // Redirect user to the schedule page
+        router.push("/"); // Redirect user to the schedule page
   
       } catch (error) {
         console.error(error);
@@ -99,22 +135,23 @@ export default function BookRoom(
         {/* The Tabs Header */}
         <div className="flex border-b border-gray-200">
           <button
-            onClick={() => setActiveTab("schedule")}
-            className={`flex-1 py-4 flex items-center justify-center gap-2 font-medium transition-colors ${
-              activeTab === "schedule" 
-                ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" 
-                : "text-gray-500 hover:bg-gray-50"
-            }`}
+            onClick={() => switchTab()}
+            className={`flex-1 py-4 flex items-center justify-center gap-2 font-medium transition-colors 
+              ${activeTab === "schedule" 
+              ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" 
+              : "text-gray-500 hover:bg-gray-50"}
+            `} 
+  
           >
             <Calendar size={18} /> View Schedule
           </button>
           <button
-            onClick={() => setActiveTab("book")}
-            className={`flex-1 py-4 flex items-center justify-center gap-2 font-medium transition-colors ${
-              activeTab === "book" 
+            // onClick={() => setActiveTab("book")}
+            className={`flex-1 py-4 flex items-center justify-center gap-2 font-medium transition-colors 
+              
+              ${activeTab === "book" 
                 ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" 
-                : "text-gray-500 hover:bg-gray-50"
-            }`}
+                : "text-gray-500 hover:bg-gray-50"}`}
           >
             <Plus size={18} /> Book Room
           </button>
@@ -152,11 +189,11 @@ export default function BookRoom(
               <div className="grid grid-cols-2 gap-6">
                  <div className="space-y-2">
                     <Label>Start Time</Label>
-                    <Input type="time" onChange={(e) => setFormData({...formData, start_time: e.target.value})} />
+                    <Input type="time" step="3600" onChange={(e) => setFormData({...formData, start_time: e.target.value})} />
                  </div>
                  <div className="space-y-2">
                     <Label>End Time</Label>
-                    <Input type="time" onChange={(e) => setFormData({...formData, end_time: e.target.value})} />
+                    <Input type="time" step="3600" onChange={(e) => setFormData({...formData, end_time: e.target.value})} />
                  </div>
               </div>
 

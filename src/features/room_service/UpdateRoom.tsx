@@ -1,6 +1,6 @@
 "use client"; 
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar, Plus, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,36 +10,82 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent} from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UpdateBookingProps } from "@/type/type";
+import { useRouter } from "next/navigation";
+import { set } from "date-fns";
+
 
 export default function BookRoom(
-  {existingBooking ,onBookingUpdate}: UpdateBookingProps = {}
+  {onBookingUpdate}: UpdateBookingProps = {}
 ) {
   const [activeTab, setActiveTab] = useState("book");
+  const apiUrl = "https://ase-251.onrender.com";
+
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
-    room: existingBooking?.room || "",
-    date: existingBooking?.date || "",
-    startTime: existingBooking?.startTime || "",
-    endTime: existingBooking?.endTime || "",
-    courseName: existingBooking?.courseName || "",
-    notes: existingBooking?.notes || ""
+    id: "",
+    room: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    courseName: "",
+    notes: ""
   });
+    useEffect(() => {
+    async function getExistingBooking() {
+      const existingBooking = await fetch(`${apiUrl}/rooms/101/booking`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      return existingBooking.json();
+    }
+    getExistingBooking().then((data) => {
+      setFormData({
+        id: data.id,
+        room: data.room,
+        date: data.date,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        courseName: data.courseName,
+        notes: data.notes
+      });
+    });
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitted:", formData);
-    onBookingUpdate?.(
-      {
-        id: existingBooking?.id || "",
+    setIsSubmitting(true);
+    try {
+    const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: formData.id || "",
         room: formData.room,
         date: formData.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
         courseName: formData.courseName,
         notes: formData.notes
-      }
-    );
-    alert("Booking Created!");
+      })
+      });
+      if (!response.ok) {
+          throw new Error("Failed to create booking");
+        }
+        // 4. Success!
+        alert("Update Booking Successful!");
+        router.push("/schedule"); // Redirect user to the schedule page
+    } catch (error) {
+      console.error("Error updating booking:", error);
+    }
+    finally { 
+    setIsSubmitting(false);
+    }
   };
 
   return (
@@ -84,10 +130,10 @@ export default function BookRoom(
                       <SelectValue placeholder="Select a room..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="101">Room 101</SelectItem>
-                      <SelectItem value="202">Room 202</SelectItem>
-                      <SelectItem value="303">Room 303</SelectItem>
-                      <SelectItem value="404">Room 404</SelectItem>
+                      <SelectItem value="A-101">Room A-101</SelectItem>
+                      <SelectItem value="A-202">Room A-202</SelectItem>
+                      <SelectItem value="B-303">Room B-303</SelectItem>
+                      <SelectItem value="B-404">Room B-404</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -140,7 +186,11 @@ export default function BookRoom(
               </div>
 
               <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg">
-                <Save className="mr-2 h-5 w-5" /> Update Booking
+                {isSubmitting ? (
+                <>Processing...</> 
+              ) : (
+                <><Save className="mr-2 h-5 w-5" /> Update Booking</>
+              )}
               </Button>
             </form>
           ) : (
