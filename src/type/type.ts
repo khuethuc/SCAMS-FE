@@ -37,44 +37,48 @@ export interface BookingProps {
 
 export interface BookingInfo {
   id: string;
-  room: string,
-  date: string,
-  startTime: string,
-  endTime: string,
-  courseName: string,
-  notes: string,
+  room: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  courseName: string;
+  notes: string;
 }
 
 // Update room
 export interface UpdateBookingProps {
   existingBooking?: BookingInfo;
-  onBookingUpdate?: (
-    BookingInfo: BookingInfo
-   ) => void;
+  onBookingUpdate?: (BookingInfo: BookingInfo) => void;
 }
 
-// View schedule
+// * * * View schedule * * * //
+
+// --- Booking Card (single booking rendered to user) ---
 export interface BookingCardProps {
   courseName: string;
   courseCode: string;
   typeLabel?: string;
-  weekday: string;
+  weekday: string;      
   startTime: string;
   endTime: string;
   room: string;
-  lecturer: string;
+  lecturer: string;     
+  createdBy?: string;    
+  date?: string;
+  userId?: string;   
   onEdit?: () => void;
   onDelete?: () => void;
-  createdBy?: string;
   canManage?: boolean;
-  date?: string;
 }
 
+// --- Schedule list / pagination wrapper ---
 export interface ScheduleProps {
   items: BookingCardProps[];
   pageSize?: number;
+  searchTerm?: string;
 }
 
+// --- Information form props ---
 export type InformationFormProps = {
   selectedTab: "room" | "my";
   onTabChange: (nextValue: "room" | "my") => void;
@@ -86,6 +90,14 @@ export type InformationFormProps = {
   availableRooms: string[];
 };
 
+// Tabs above the schedule (Room / My)
+export type ScheduleTabsProps = {
+  value: "room" | "my";
+  onChange: (nextValue: "room" | "my") => void;
+  isAuthenticated: boolean;
+};
+
+// Filter pill rows
 export type ScheduleFilters = {
   room: string | null;
   day: "this-week" | "today" | "tomorrow" | null;
@@ -93,12 +105,7 @@ export type ScheduleFilters = {
   endDate: Date | null;
 };
 
-export type ScheduleTabsProps = {
-  value: "room" | "my";
-  onChange: (nextValue: "room" | "my") => void;
-  isAuthenticated: boolean;
-};
-
+// Filter component props
 export type ScheduleFilterProps = {
   filters: ScheduleFilters;
   onFiltersChange: (nextFilters: ScheduleFilters) => void;
@@ -107,10 +114,11 @@ export type ScheduleFilterProps = {
 
 export type TabValue = "room" | "my";
 
+// Raw booking directly from backend
 export type RawBooking = {
   booking_id?: string;
   room_id?: string;
-  lecturer_id?: string;
+  user_id?: string; 
   created_by?: string;
   date?: string;
   start_time?: string;
@@ -120,9 +128,18 @@ export type RawBooking = {
   notes?: string;
 };
 
+// Search input props
 export type SearchProps = {
   value: string;
   onChange: (value: string) => void;
+};
+
+// Response shape for /schedule
+export type ApiRoomSchedule = {
+  room: string;
+  from: string;
+  to: string;
+  booking: RawBooking[];
 };
 
 // * * * Pagination * * * //
