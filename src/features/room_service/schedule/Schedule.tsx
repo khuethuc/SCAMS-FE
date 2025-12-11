@@ -27,17 +27,14 @@ export function Schedule({ items, pageSize = 5, searchTerm }: ScheduleProps) {
     return () => window.removeEventListener("storage", syncUser);
   }, []);
 
-  // Reset page khi search thay đổi
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Reset page khi filter thay đổi (items thay đổi)
   useEffect(() => {
     setCurrentPage(1);
   }, [items.length]);
 
-  // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
 
   const pageItems = useMemo(
@@ -62,7 +59,6 @@ export function Schedule({ items, pageSize = 5, searchTerm }: ScheduleProps) {
       {/* Booking list */}
       <div className="space-y-3">
         {pageItems.map((item: any, index) => {
-          // Chủ booking theo userId
           const isOwner =
             typeof item.userId === "string" &&
             typeof currentUser.id === "string" &&

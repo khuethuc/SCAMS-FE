@@ -15,28 +15,28 @@ import { on } from "events";
 
 const API_URL = "https://ase-251.onrender.com";
 
-
 const flattenApiBookings = (
   rooms: ApiRoomSchedule[] | RawBooking[]
 ): RawBooking[] => {
   if (!Array.isArray(rooms)) return [];
 
-  // Trường hợp API trả dạng group theo room (room + booking[])
   if (rooms.length > 0 && "booking" in (rooms[0] as any)) {
     return (rooms as ApiRoomSchedule[]).flatMap((roomBlock) =>
       (roomBlock.booking ?? []).map((b) => ({
         ...b,
-        // đảm bảo room_id luôn có
         room_id: (b as any).room_id ?? roomBlock.room,
       }))
     );
   }
 
-  // Trường hợp API trả flat list
   return rooms as RawBooking[];
 };
 
-const mapBookingsToCards = (records: RawBooking[], onEdit: (bookingId: string) => void, onDelete: (bookingId: string, roomid: string) => void): BookingCardProps[] =>
+const mapBookingsToCards = (
+  records: RawBooking[],
+  onEdit: (bookingId: string) => void,
+  onDelete: (bookingId: string, roomid: string) => void
+): BookingCardProps[] =>
   records.map((record) => {
     const notes = record.notes ?? "";
     const courseName = record.course_name ?? "Untitled Course";
@@ -55,11 +55,9 @@ const mapBookingsToCards = (records: RawBooking[], onEdit: (bookingId: string) =
       }
     }
 
-    // Chủ booking theo user_id
     const userId = record.user_id ?? "";
     const createdBy = userId || "";
 
-    // Nếu không có user_id thì text lecturer = "Lecturer"
     const lecturerLabel = userId && userId.trim() !== "" ? userId : "Lecturer";
 
     const bookingId =
@@ -77,9 +75,7 @@ const mapBookingsToCards = (records: RawBooking[], onEdit: (bookingId: string) =
       lecturer: lecturerLabel,
       createdBy,
       date: record.date ?? "",
-      // thêm userId để Schedule.tsx kiểm tra chủ sở hữu
       userId,
-      // stub handler – sau này bạn hook vào API delete / update
       onEdit: () => {
         onEdit(record.booking_id || "");
         console.log("Edit booking", bookingId);
@@ -133,7 +129,6 @@ function buildScheduleQueryParams(filters: ScheduleFilters): URLSearchParams {
   return params;
 }
 
-// fallback theo email (trường hợp có createdBy là email cũ)
 const fallbackCreatorMatch = (
   createdBy: string | undefined,
   email: string | null
@@ -191,14 +186,12 @@ export default function ViewSchedule() {
     return () => window.removeEventListener("storage", syncAuth);
   }, []);
 
-  // Không cho vào tab "my" nếu chưa login
   useEffect(() => {
     if (!isAuthenticated && selectedTab === "my") {
       setSelectedTab("room");
     }
   }, [isAuthenticated, selectedTab]);
 
-  // Fetch schedule mỗi khi filter đổi
   useEffect(() => {
     const controller = new AbortController();
 
@@ -238,33 +231,31 @@ export default function ViewSchedule() {
     fetchSchedule();
 
     return () => controller.abort();
-  }, [filters]); // không cần selectedTab, My Schedule lọc client-side
+  }, [filters]);
 
   async function handleDelete(bookingId: string, roomid: string) {
-    const status = await fetch(`${API_URL}/rooms/${roomid}/booking/${bookingId}`, {
-      method: "DELETE",
-      headers: {
-        "user-id": localStorage.getItem("userId") || "",
-        "role": localStorage.getItem("userRole") || "",
+    const status = await fetch(
+      `${API_URL}/rooms/${roomid}/booking/${bookingId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "user-id": localStorage.getItem("userId") || "",
+          role: localStorage.getItem("userRole") || "",
+        },
       }
-    });
-    if (status.ok) {
-    // Remove from UI immediately
-    setRawBookings(prev =>
-      prev.filter(b => b.booking_id !== bookingId)
     );
-  }
+    if (status.ok) {
+      setRawBookings((prev) => prev.filter((b) => b.booking_id !== bookingId));
+    }
   }
   async function handleEdit(bookingId: string) {
     router.push(`/updateroom/${bookingId}`);
   }
 
-  // Map API -> BookingCardProps
   const allBookings: BookingCardProps[] = useMemo(
     () => mapBookingsToCards(rawBookings, handleEdit, handleDelete),
     [rawBookings]
   );
-
 
   const availableRooms = useMemo(() => {
     const uniqueRooms = new Set<string>();
@@ -274,7 +265,6 @@ export default function ViewSchedule() {
     return Array.from(uniqueRooms).sort((a, b) => a.localeCompare(b));
   }, [allBookings]);
 
-  // Room Schedule / My Schedule
   const bookingsByTab = useMemo(() => {
     if (selectedTab !== "my") {
       return allBookings;
@@ -300,7 +290,6 @@ export default function ViewSchedule() {
     setFilters(nextFilters);
   };
 
-  // Search client-side
   const filteredBookings = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     if (!normalizedSearch) {

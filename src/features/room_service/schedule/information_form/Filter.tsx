@@ -2,7 +2,6 @@
 
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { vi } from "date-fns/locale";
-
 import {
   Select,
   SelectContent,
@@ -20,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon, FilterIcon } from "lucide-react";
 
 import { ScheduleFilterProps, ScheduleFilters } from "@/type/type";
+import { useMemo } from "react";
 
 export default function Filter({
   filters,
@@ -31,7 +31,6 @@ export default function Filter({
   const today = new Date();
   const tomorrow = addDays(today, 1);
 
-  // Tuần hiện tại Thứ 2 → Chủ nhật
   const weekStart =
     day === "this-week" ? startOfWeek(today, { weekStartsOn: 1 }) : null;
   const weekEnd =
@@ -39,144 +38,113 @@ export default function Filter({
 
   const isPristine = !room && !day && !startDate && !endDate;
 
-  // ----------------------
-  // ROOM HANDLER
-  // ----------------------
+  // Forces re-render of UI when reset
+  const filterKey = useMemo(
+    () =>
+      `${room ?? "none"}-${day ?? "none"}-${startDate ?? "none"}-${
+        endDate ?? "none"
+      }`,
+    [room, day, startDate, endDate]
+  );
+
+  // Room handlers
   const handleRoomChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      room: value,
-    });
+    onFiltersChange({ ...filters, room: value });
   };
 
   const handleClearRoom = () => {
-    onFiltersChange({
-      ...filters,
-      room: null,
-    });
+    onFiltersChange({ ...filters, room: null });
   };
 
-  // ----------------------
-  // DAY HANDLER (SET START/END AUTO)
-  // ----------------------
+  // Day handlers
   const handleDayChange = (value: string) => {
     const nextDay = value as ScheduleFilters["day"];
-    let nextStartDate = startDate;
-    let nextEndDate = endDate;
+
+    let nextStart = null;
+    let nextEnd = null;
 
     if (nextDay === "today") {
-      nextStartDate = today;
-      nextEndDate = today;
+      nextStart = today;
+      nextEnd = today;
     } else if (nextDay === "tomorrow") {
-      nextStartDate = tomorrow;
-      nextEndDate = tomorrow;
+      nextStart = tomorrow;
+      nextEnd = tomorrow;
     } else if (nextDay === "this-week") {
-      nextStartDate = weekStart ?? today;
-      nextEndDate = weekEnd ?? today;
+      nextStart = weekStart ?? today;
+      nextEnd = weekEnd ?? today;
     }
 
     onFiltersChange({
       ...filters,
       day: nextDay,
-      startDate: nextStartDate,
-      endDate: nextEndDate,
+      startDate: nextStart,
+      endDate: nextEnd,
     });
   };
 
-  const handleClearDay = () => {
+  const handleClearDay = () =>
     onFiltersChange({
       ...filters,
       day: null,
+      startDate: null,
+      endDate: null,
     });
-  };
 
-  // ----------------------
-  // START / END DATE HANDLER
-  // ----------------------
+  // Date handlers
   const handleSelectStart = (date: Date | undefined) => {
-    let newStart = date ?? null;
+    const newStart = date ?? null;
     let newEnd = endDate;
 
-    if (newStart && newEnd && newEnd < newStart) {
-      newEnd = null;
-    }
+    if (newStart && newEnd && newEnd < newStart) newEnd = null;
 
     onFiltersChange({
       ...filters,
       startDate: newStart,
       endDate: newEnd,
+      day: null,
     });
   };
 
-  const handleSelectEnd = (date: Date | undefined) => {
+  const handleSelectEnd = (date: Date | undefined) =>
     onFiltersChange({
       ...filters,
       endDate: date ?? null,
+      day: null,
     });
-  };
 
-  // ----------------------
-  // RESET
-  // ----------------------
-  const handleReset = () => {
+  // Reset
+  const handleReset = () =>
     onFiltersChange({
       room: null,
       day: null,
       startDate: null,
       endDate: null,
     });
-  };
 
-  // ----------------------
-  // DISABLE LOGIC – PERFECT VERSION
-  // ----------------------
+  // Disable logic
   const disableStartDate = (date: Date) => {
-    // TODAY → chỉ chọn đúng hôm nay
-    if (day === "today") {
-      return date.toDateString() !== today.toDateString();
-    }
-
-    // TOMORROW → chỉ chọn đúng ngày mai
-    if (day === "tomorrow") {
+    if (day === "today") return date.toDateString() !== today.toDateString();
+    if (day === "tomorrow")
       return date.toDateString() !== tomorrow.toDateString();
-    }
-
-    // THIS WEEK → chỉ chọn từ Thứ 2 đến Chủ nhật
-    if (day === "this-week" && weekStart && weekEnd) {
+    if (day === "this-week" && weekStart && weekEnd)
       return date < weekStart || date > weekEnd;
-    }
-
     return false;
   };
 
   const disableEndDate = (date: Date) => {
-    // End date không được trước start date
     if (startDate && date < startDate) return true;
 
-    // TODAY
-    if (day === "today") {
-      return date.toDateString() !== today.toDateString();
-    }
-
-    // TOMORROW
-    if (day === "tomorrow") {
+    if (day === "today") return date.toDateString() !== today.toDateString();
+    if (day === "tomorrow")
       return date.toDateString() !== tomorrow.toDateString();
-    }
-
-    // THIS WEEK
-    if (day === "this-week" && weekStart && weekEnd) {
+    if (day === "this-week" && weekStart && weekEnd)
       return date < weekStart || date > weekEnd;
-    }
 
     return false;
   };
 
-  // ----------------------
-  // UI COMPONENT
-  // ----------------------
   return (
-    <div className="space-y-6">
-      {/* Title */}
+    <div className="space-y-6" key={filterKey}>
       <div className="flex items-center justify-between text-gray-700">
         <div className="flex items-center gap-2">
           <FilterIcon size={20} />
@@ -185,28 +153,27 @@ export default function Filter({
 
         <Button
           type="button"
-          variant="ghost"
           onClick={handleReset}
           disabled={isPristine}
-          className="h-auto px-2 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+          variant="ghost"
+          className="text-blue-600 hover:text-blue-700 disabled:text-gray-400 text-sm"
         >
           Reset
         </Button>
       </div>
 
-      {/* Room + Day Row */}
+      {/* Row 1: Room + Day */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* ROOM */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-gray-700 font-medium">Room</label>
+            <label className="font-medium text-gray-700">Room</label>
             {room && (
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handleClearRoom}
-                className="h-auto px-2 py-1 text-xs font-medium text-blue-600"
+                className="text-blue-600 text-xs px-2"
               >
                 Clear
               </Button>
@@ -214,12 +181,12 @@ export default function Filter({
           </div>
 
           <Select value={room ?? undefined} onValueChange={handleRoomChange}>
-            <SelectTrigger className="w-full rounded-xl h-14 text-base">
+            <SelectTrigger className="h-12 rounded-xl">
               <SelectValue placeholder="Select room" />
             </SelectTrigger>
             <SelectContent>
               {rooms.map((r) => (
-                <SelectItem key={r} value={r}>
+                <SelectItem value={r} key={r}>
                   {r}
                 </SelectItem>
               ))}
@@ -230,14 +197,13 @@ export default function Filter({
         {/* DAY */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-gray-700 font-medium">Day</label>
+            <label className="font-medium text-gray-700">Day</label>
             {day && (
               <Button
-                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handleClearDay}
-                className="h-auto px-2 py-1 text-xs font-medium text-blue-600"
+                className="text-blue-600 text-xs px-2"
               >
                 Clear
               </Button>
@@ -245,7 +211,7 @@ export default function Filter({
           </div>
 
           <Select value={day ?? undefined} onValueChange={handleDayChange}>
-            <SelectTrigger className="w-full rounded-xl h-14 text-base">
+            <SelectTrigger className="h-12 rounded-xl">
               <SelectValue placeholder="Select day" />
             </SelectTrigger>
             <SelectContent>
@@ -257,17 +223,17 @@ export default function Filter({
         </div>
       </div>
 
-      {/* Start + End Date */}
+      {/* Row 2: Start + End Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* START DATE */}
         <div className="space-y-1">
-          <label className="text-gray-700 font-medium">Start Date</label>
+          <label className="font-medium text-gray-700">Start Date</label>
 
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-start rounded-xl h-12"
+                className="h-12 rounded-xl w-full justify-start"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {startDate
@@ -275,7 +241,6 @@ export default function Filter({
                   : "dd/mm/yyyy"}
               </Button>
             </PopoverTrigger>
-
             <PopoverContent className="p-0">
               <Calendar
                 mode="single"
@@ -289,14 +254,14 @@ export default function Filter({
 
         {/* END DATE */}
         <div className="space-y-1">
-          <label className="text-gray-700 font-medium">End Date</label>
+          <label className="font-medium text-gray-700">End Date</label>
 
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-start rounded-xl h-12"
                 disabled={!startDate}
+                className="h-12 rounded-xl w-full justify-start"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {endDate
@@ -304,7 +269,6 @@ export default function Filter({
                   : "dd/mm/yyyy"}
               </Button>
             </PopoverTrigger>
-
             <PopoverContent className="p-0">
               <Calendar
                 mode="single"
