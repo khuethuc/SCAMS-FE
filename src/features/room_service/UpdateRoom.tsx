@@ -18,7 +18,7 @@ export default function BookRoom(
   {onBookingUpdate}: UpdateBookingProps = {}
 ) {
   const [activeTab, setActiveTab] = useState("book");
-  const apiUrl = "http://localhost:8000";
+  const apiUrl = "https://ase-251.onrender.com";
   const [Loading, setLoading] = useState(true);
 
   const params = useParams();
@@ -39,7 +39,7 @@ export default function BookRoom(
   // ${apiUrl}/booking/${bookingId}
     useEffect(() => {
     async function getExistingBooking() {
-      const existingBooking = await fetch(`http://localhost:8000/rooms/booking/book3bc23d2a`, {
+      const existingBooking = await fetch(`${apiUrl}/rooms/booking/${bookingId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -69,15 +69,16 @@ export default function BookRoom(
     setIsSubmitting(true);
     try {
       // await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`
-    const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`, {
+    const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${bookingId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "user_id": "6932a72112de6403b5934dac",
-        "role" : "lecturer"
+        "user-id": `${localStorage.getItem("userId") || ""}`,
+        "Accept": "application/json",
+        "role" : `${localStorage.getItem("userRole") || ""}`
       },
       body: JSON.stringify({
-        id: formData.id || "",
+        id: bookingId,
         room: formData.room,
         date: formData.date,
         start_time: formData.startTime,
@@ -87,11 +88,12 @@ export default function BookRoom(
       })
       });
       if (!response.ok) {
-          throw new Error("Failed to create booking");
+          console.log("Failed to update booking:", response);
+          throw new Error("Failed to Update booking");
         }
         // 4. Success!
         alert("Update Booking Successful!");
-        router.push("/schedule"); // Redirect user to the schedule page
+        router.push("/"); // Redirect user to the schedule page
     } catch (error) {
       console.error("Error updating booking:", error);
     }
@@ -136,7 +138,7 @@ export default function BookRoom(
                 {/* Room Selector */}
                 <div className="space-y-2">
                   <Label>Select Room</Label>
-                  <Select key={formData.room} onValueChange={(val) => setFormData({...formData, room: val})}
+                  <Select disabled key={formData.room} onValueChange={(val) => setFormData({...formData, room: val})}
                     value ={formData.room}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a room..." />
