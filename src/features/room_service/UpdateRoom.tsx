@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent} from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UpdateBookingProps } from "@/type/type";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { set } from "date-fns";
 
 
@@ -19,6 +19,10 @@ export default function BookRoom(
 ) {
   const [activeTab, setActiveTab] = useState("book");
   const apiUrl = "https://ase-251.onrender.com";
+  const [Loading, setLoading] = useState(true);
+
+  const params = useParams();
+  const bookingId = params?.id || "";
 
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,54 +36,64 @@ export default function BookRoom(
     courseName: "",
     notes: ""
   });
+  // ${apiUrl}/booking/${bookingId}
     useEffect(() => {
     async function getExistingBooking() {
-      const existingBooking = await fetch(`${apiUrl}/rooms/101/booking`, {
+      const existingBooking = await fetch(`${apiUrl}/rooms/booking/${bookingId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
+      // const something = existingBooking.json();
+      console.log("Existing Booking Response:", existingBooking);
+      setLoading(false);
       return existingBooking.json();
     }
     getExistingBooking().then((data) => {
+      console.log("Fetched Booking Data:", data);
       setFormData({
-        id: data.id,
-        room: data.room,
-        date: data.date,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        courseName: data.courseName,
-        notes: data.notes
+        id: data.id || "",
+        room: data.room_id || "",
+        date: data.date || "",
+        startTime: data.start_time || "",
+        endTime: data.end_time || "",
+        courseName: data.course_name || "",
+        notes: data.notes || ""
       });
     });
-  }, []);
+  }, [bookingId]);
 
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-    const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`, {
+      // await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`
+    const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${bookingId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        "user-id": `${localStorage.getItem("userId") || ""}`,
+        "Accept": "application/json",
+        "role" : `${localStorage.getItem("userRole") || ""}`
       },
       body: JSON.stringify({
-        id: formData.id || "",
+        id: bookingId,
         room: formData.room,
         date: formData.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        courseName: formData.courseName,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
+        course_name: formData.courseName,
         notes: formData.notes
       })
       });
       if (!response.ok) {
-          throw new Error("Failed to create booking");
+          console.log("Failed to update booking:", response);
+          throw new Error("Failed to Update booking");
         }
         // 4. Success!
         alert("Update Booking Successful!");
-        router.push("/schedule"); // Redirect user to the schedule page
+        router.push("/"); // Redirect user to the schedule page
     } catch (error) {
       console.error("Error updating booking:", error);
     }
@@ -124,7 +138,7 @@ export default function BookRoom(
                 {/* Room Selector */}
                 <div className="space-y-2">
                   <Label>Select Room</Label>
-                  <Select onValueChange={(val) => setFormData({...formData, room: val})}
+                  <Select disabled key={formData.room} onValueChange={(val) => setFormData({...formData, room: val})}
                     value ={formData.room}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a room..." />
@@ -134,6 +148,12 @@ export default function BookRoom(
                       <SelectItem value="A-202">Room A-202</SelectItem>
                       <SelectItem value="B-303">Room B-303</SelectItem>
                       <SelectItem value="B-404">Room B-404</SelectItem>
+                      {formData.room && 
+                      !["A-101", "A-202", "B-303", "B-404"].includes(formData.room) && (
+                          <SelectItem value={formData.room}>
+                            {formData.room} 
+                          </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -162,15 +182,24 @@ export default function BookRoom(
 
               <div className="space-y-2 w-full" >
                 <Label>Course Name</Label>
-                <Select onValueChange={(val) => setFormData({...formData, courseName: val})} value={formData.courseName}>
+                <Select key={formData.courseName} onValueChange={(val) => setFormData({...formData, courseName: val})} 
+                value={formData.courseName}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a course..." />
                     </SelectTrigger>
                     <SelectContent>
+                    
                       <SelectItem value="Computer Network">Computer Network</SelectItem>
                       <SelectItem value="Database Management System">Database Management System</SelectItem>
                       <SelectItem value="Software Engineering">Software Engineering</SelectItem>
                       <SelectItem value="Operating Systems">Operating Systems</SelectItem>
+                      {formData.courseName && 
+                      !["Computer Network", "Database Management System", "Software Engineering", "Operating Systems"].includes(formData.courseName) && (
+                          <SelectItem value={formData.courseName}>
+                            {formData.courseName}
+                          </SelectItem>
+                      )}
+                      
                     </SelectContent>
                   </Select>
               </div>

@@ -98,10 +98,10 @@ export default function BookRoom(
           headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "role" : "lecturer"
+            "role" : `${localStorage.getItem("userRole") || ""}`,
           },
           body: JSON.stringify({
-            user_id: "",
+            user_id: `${localStorage.getItem("userId")}`,
             date: formData.date,
             start_time: formData.start_time,
             end_time: formData.end_time,
