@@ -11,8 +11,10 @@ import { BookingCardProps, ScheduleFilters } from "@/type/type";
 import { BOOK_ROOM_PATH, LOGIN_PATH } from "@/const/path";
 import { RawBooking, TabValue, ApiRoomSchedule } from "@/type/type";
 import { Card, CardContent } from "@/components/ui/card";
+import { on } from "events";
 
 const API_URL = "https://ase-251.onrender.com";
+
 
 const flattenApiBookings = (
   rooms: ApiRoomSchedule[] | RawBooking[]
@@ -34,7 +36,7 @@ const flattenApiBookings = (
   return rooms as RawBooking[];
 };
 
-const mapBookingsToCards = (records: RawBooking[]): BookingCardProps[] =>
+const mapBookingsToCards = (records: RawBooking[], onEdit: (bookingId: string) => void, onDelete: (bookingId: string, roomid: string) => void): BookingCardProps[] =>
   records.map((record) => {
     const notes = record.notes ?? "";
     const courseName = record.course_name ?? "Untitled Course";
@@ -79,9 +81,11 @@ const mapBookingsToCards = (records: RawBooking[]): BookingCardProps[] =>
       userId,
       // stub handler – sau này bạn hook vào API delete / update
       onEdit: () => {
+        onEdit(record.booking_id || "");
         console.log("Edit booking", bookingId);
       },
       onDelete: () => {
+        onDelete(bookingId, record.room_id || "");
         console.log("Delete booking", bookingId);
       },
     } as any;
@@ -236,11 +240,31 @@ export default function ViewSchedule() {
     return () => controller.abort();
   }, [filters]); // không cần selectedTab, My Schedule lọc client-side
 
+  async function handleDelete(bookingId: string, roomid: string) {
+    const status = await fetch(`${API_URL}/rooms/${roomid}/booking/${bookingId}`, {
+      method: "DELETE",
+      headers: {
+        "user-id": localStorage.getItem("userId") || "",
+        "role": localStorage.getItem("userRole") || "",
+      }
+    });
+    if (status.ok) {
+    // Remove from UI immediately
+    setRawBookings(prev =>
+      prev.filter(b => b.booking_id !== bookingId)
+    );
+  }
+  }
+  async function handleEdit(bookingId: string) {
+    router.push(`/updateroom/${bookingId}`);
+  }
+
   // Map API -> BookingCardProps
   const allBookings: BookingCardProps[] = useMemo(
-    () => mapBookingsToCards(rawBookings),
+    () => mapBookingsToCards(rawBookings, handleEdit, handleDelete),
     [rawBookings]
   );
+
 
   const availableRooms = useMemo(() => {
     const uniqueRooms = new Set<string>();

@@ -88,6 +88,7 @@ export function BookingCard({
             type="button"
             variant="ghost"
             className="flex items-center gap-2 rounded-2xl bg-blue-50 px-4 py-2 text-sm font-medium text-[#155DFC] hover:bg-blue-100"
+            onClick={onEdit}
           >
             <Edit3 className="h-4 w-4" />
             Edit

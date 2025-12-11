@@ -64,9 +64,45 @@ export default function BookRoom(
     });
   }, [bookingId]);
 
+
+  function validateForm() {
+    if (!formData.room) {
+      alert("Please select a room.");
+      return false;
+    }
+    if (!formData.date) {
+      alert("Please select a date.");
+      return false;
+    }
+    if (formData.date < new Date().toISOString().split("T")[0]) {
+      alert("Date cannot be in the past.");
+      return false;
+    }
+    if (!formData.startTime || !formData.endTime) {
+      alert("Please select both start and end times.");
+      return false;
+    }
+    if (formData.startTime >= formData.endTime) {
+      alert("End time must be after start time.");
+      return false;
+    }
+    if (!formData.courseName) {
+      alert("Please select a course name.");
+      return false;
+    }
+    return true;
+  }
+  const switchTab = () => {
+    router.push("/");
+  }
+
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      return; 
+    }
     try {
       // await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`
     const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${bookingId}`, {
@@ -89,6 +125,7 @@ export default function BookRoom(
       });
       if (!response.ok) {
           console.log("Failed to update booking:", response);
+          // alert("Failed to update booking. Please try again." + response.error);
           throw new Error("Failed to Update booking");
         }
         // 4. Success!
@@ -109,7 +146,7 @@ export default function BookRoom(
         {/* The Tabs Header */}
         <div className="flex border-b border-gray-200">
           <button
-            onClick={() => setActiveTab("schedule")}
+            onClick={() => switchTab()}
             className={`flex-1 py-4 flex items-center justify-center gap-2 font-medium transition-colors ${
               activeTab === "schedule" 
                 ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50/50" 
