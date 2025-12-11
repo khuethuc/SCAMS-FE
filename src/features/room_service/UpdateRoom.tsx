@@ -64,9 +64,42 @@ export default function BookRoom(
     });
   }, [bookingId]);
 
+
+  function validateForm() {
+    if (!formData.room) {
+      alert("Please select a room.");
+      return false;
+    }
+    if (!formData.date) {
+      alert("Please select a date.");
+      return false;
+    }
+    if (formData.date < new Date().toISOString().split("T")[0]) {
+      alert("Date cannot be in the past.");
+      return false;
+    }
+    if (!formData.startTime || !formData.endTime) {
+      alert("Please select both start and end times.");
+      return false;
+    }
+    if (formData.startTime >= formData.endTime) {
+      alert("End time must be after start time.");
+      return false;
+    }
+    if (!formData.courseName) {
+      alert("Please select a course name.");
+      return false;
+    }
+    return true;
+  }
+
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      return; 
+    }
     try {
       // await fetch(`${apiUrl}/rooms/${formData.room}/booking/${formData.id}`
     const response = await fetch(`${apiUrl}/rooms/${formData.room}/booking/${bookingId}`, {
