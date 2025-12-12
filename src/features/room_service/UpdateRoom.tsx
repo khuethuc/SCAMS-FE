@@ -122,11 +122,17 @@ export default function BookRoom(
       });
       if (!response.ok) {
           console.log("Failed to update booking:", response);
-          throw new Error("Failed to Update booking");
+          const errorText = await response.json();
+          const code = errorText.detail?.error?.code || "Error";
+          const msg = errorText.detail?.error?.message || "Unknown error occurred";
+          alert("Failed to update booking." + `\n${msg}` + `\nPlease try again.`);
+          // throw new Error("Failed to Update booking");
         }
+        else{
         // 4. Success!
         alert("Update Booking Successful!");
         router.push("/"); // Redirect user to the schedule page
+        }
     } catch (error) {
       console.error("Error updating booking:", error);
     }
