@@ -85,6 +85,7 @@ export default function Register({
         if (onRegister) {
           onRegister(name, email, password);
         }
+        alert("Registration successful! Please login.");
         window.location.href = LOGIN_PATH;
       } catch (err) {
         setError("Network error. Please try again");
