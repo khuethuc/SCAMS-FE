@@ -53,15 +53,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
     };
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    // Xoá toàn bộ thông tin đăng nhập
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
     localStorage.removeItem("userId");
     localStorage.removeItem("userName");
+
+    // Sync state
     setIsAuthenticated(false);
     setUser(undefined);
+
     window.dispatchEvent(new Event("scams-auth-change"));
-    router.push("/");
+
+    window.location.href = "/";
   };
 
   return (

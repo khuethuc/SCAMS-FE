@@ -2,44 +2,45 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Plus } from "lucide-react";
-import {
-  addDays,
-  endOfDay,
-  format,
-  isAfter,
-  isBefore,
-  isSameDay,
-  isSameWeek,
-  parseISO,
-  startOfDay,
-} from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek } from "date-fns";
 import { useRouter } from "next/navigation";
 
 import InformationForm from "@/features/room_service/schedule/InformationForm";
 import { Schedule } from "@/features/room_service/schedule/Schedule";
 import { BookingCardProps, ScheduleFilters } from "@/type/type";
 import { BOOK_ROOM_PATH, LOGIN_PATH } from "@/const/path";
-import mockBookings from "./mock_data.json";
-import { RawBooking, TabValue } from "@/type/type";
+import { RawBooking, TabValue, ApiRoomSchedule } from "@/type/type";
 import { Card, CardContent } from "@/components/ui/card";
+import { on } from "events";
 
-const fallbackCreatorMatch = (
-  createdBy: string | undefined,
-  email: string | null
-): boolean => {
-  if (!createdBy || !email) return false;
-  const creatorNormalized = createdBy.toLowerCase();
-  const emailNormalized = email.toLowerCase();
-  const emailPrefix = emailNormalized.split("@")[0];
-  return (
-    creatorNormalized === emailNormalized || creatorNormalized === emailPrefix
-  );
+const API_URL = "https://ase-251.onrender.com";
+
+const flattenApiBookings = (
+  rooms: ApiRoomSchedule[] | RawBooking[]
+): RawBooking[] => {
+  if (!Array.isArray(rooms)) return [];
+
+  if (rooms.length > 0 && "booking" in (rooms[0] as any)) {
+    return (rooms as ApiRoomSchedule[]).flatMap((roomBlock) =>
+      (roomBlock.booking ?? []).map((b) => ({
+        ...b,
+        room_id: (b as any).room_id ?? roomBlock.room,
+      }))
+    );
+  }
+
+  return rooms as RawBooking[];
 };
 
-const mapBookingsToCards = (records: RawBooking[]): BookingCardProps[] =>
+const mapBookingsToCards = (
+  records: RawBooking[],
+  onEdit: (bookingId: string) => void,
+  onDelete: (bookingId: string, roomid: string) => void
+): BookingCardProps[] =>
   records.map((record) => {
     const notes = record.notes ?? "";
     const courseName = record.course_name ?? "Untitled Course";
+
     const isLab =
       (typeof notes === "string" && notes.toLowerCase().includes("lab")) ||
       (typeof courseName === "string" &&
@@ -54,7 +55,14 @@ const mapBookingsToCards = (records: RawBooking[]): BookingCardProps[] =>
       }
     }
 
-    const createdBy = record.created_by || record.lecturer_id || "";
+    const userId = record.user_id ?? "";
+    const createdBy = userId || "";
+
+    const lecturerLabel = userId && userId.trim() !== "" ? userId : "Lecturer";
+
+    const bookingId =
+      record.booking_id ??
+      `${record.course_id ?? "unknown"}-${record.date ?? "unknown"}`;
 
     return {
       courseName,
@@ -64,23 +72,75 @@ const mapBookingsToCards = (records: RawBooking[]): BookingCardProps[] =>
       startTime: record.start_time ?? "",
       endTime: record.end_time ?? "",
       room: record.room_id ?? "",
-      lecturer: record.lecturer_id || createdBy || "TBA",
+      lecturer: lecturerLabel,
       createdBy,
       date: record.date ?? "",
+      userId,
       onEdit: () => {
-        console.log(
-          "Edit booking",
-          record.booking_id ?? `${record.course_id}-${record.date}`
-        );
+        onEdit(record.booking_id || "");
+        console.log("Edit booking", bookingId);
       },
       onDelete: () => {
-        console.log(
-          "Delete booking",
-          record.booking_id ?? `${record.course_id}-${record.date}`
-        );
+        onDelete(bookingId, record.room_id || "");
+        console.log("Delete booking", bookingId);
       },
-    };
+    } as any;
   });
+
+function buildScheduleQueryParams(filters: ScheduleFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  const { room, day, startDate, endDate } = filters;
+  const today = new Date();
+
+  if (room) {
+    params.set("room", room);
+  }
+
+  let from: Date | null = null;
+  let to: Date | null = null;
+
+  if (startDate && endDate) {
+    from = startDate;
+    to = endDate;
+  } else if (startDate && !endDate) {
+    from = startDate;
+  } else if (!startDate && endDate) {
+    from = today;
+    to = endDate;
+  } else if (day) {
+    if (day === "today") {
+      from = today;
+      to = today;
+    } else if (day === "tomorrow") {
+      const tomorrow = addDays(today, 1);
+      from = tomorrow;
+      to = tomorrow;
+    } else if (day === "this-week") {
+      const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+      from = weekStart;
+      to = weekEnd;
+    }
+  }
+
+  if (from) params.set("from", format(from, "yyyy-MM-dd"));
+  if (to) params.set("to", format(to, "yyyy-MM-dd"));
+
+  return params;
+}
+
+const fallbackCreatorMatch = (
+  createdBy: string | undefined,
+  email: string | null
+): boolean => {
+  if (!createdBy || !email) return false;
+  const creatorNormalized = createdBy.toLowerCase();
+  const emailNormalized = email.toLowerCase();
+  const emailPrefix = emailNormalized.split("@")[0];
+  return (
+    creatorNormalized === emailNormalized || creatorNormalized === emailPrefix
+  );
+};
 
 export default function ViewSchedule() {
   const router = useRouter();
@@ -95,21 +155,30 @@ export default function ViewSchedule() {
     startDate: null,
     endDate: null,
   });
+
   const [currentUser, setCurrentUser] = useState<{
     email: string | null;
     role: string | null;
-  }>({ email: null, role: null });
+    id: string | null;
+    name: string | null;
+  }>({ email: null, role: null, id: null, name: null });
+
+  const [rawBookings, setRawBookings] = useState<RawBooking[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isAuthenticated = useMemo(
-    () => Boolean(currentUser.email && currentUser.role),
-    [currentUser.email, currentUser.role]
+    () => Boolean(currentUser.id),
+    [currentUser.id]
   );
 
   useEffect(() => {
     const syncAuth = () => {
       const email = localStorage.getItem("userEmail");
       const role = localStorage.getItem("userRole");
-      setCurrentUser({ email, role });
+      const id = localStorage.getItem("userId");
+      const name = localStorage.getItem("userName");
+      setCurrentUser({ email, role, id, name });
     };
 
     syncAuth();
@@ -123,17 +192,75 @@ export default function ViewSchedule() {
     }
   }, [isAuthenticated, selectedTab]);
 
-  const allBookings = useMemo(
-    () => mapBookingsToCards(mockBookings as RawBooking[]),
-    []
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchSchedule = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const params = buildScheduleQueryParams(filters);
+        const query = params.toString();
+        const url = query
+          ? `${API_URL}/schedule?${query}`
+          : `${API_URL}/schedule`;
+
+        const res = await fetch(url, {
+          method: "GET",
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch schedule (${res.status})`);
+        }
+
+        const json = await res.json();
+        const flattened = flattenApiBookings(json);
+        setRawBookings(flattened);
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
+        console.error("Error fetching schedule:", err);
+        setError(err?.message || "Failed to load schedule");
+        setRawBookings([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSchedule();
+
+    return () => controller.abort();
+  }, [filters]);
+
+  async function handleDelete(bookingId: string, roomid: string) {
+    const status = await fetch(
+      `${API_URL}/rooms/${roomid}/booking/${bookingId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "user-id": localStorage.getItem("userId") || "",
+          role: localStorage.getItem("userRole") || "",
+        },
+      }
+    );
+    if (status.ok) {
+      setRawBookings((prev) => prev.filter((b) => b.booking_id !== bookingId));
+    }
+  }
+  async function handleEdit(bookingId: string) {
+    router.push(`/updateroom/${bookingId}`);
+  }
+
+  const allBookings: BookingCardProps[] = useMemo(
+    () => mapBookingsToCards(rawBookings, handleEdit, handleDelete),
+    [rawBookings]
   );
 
   const availableRooms = useMemo(() => {
     const uniqueRooms = new Set<string>();
-    allBookings.forEach((item) => {
-      if (item.room) {
-        uniqueRooms.add(item.room);
-      }
+    allBookings.forEach((item: any) => {
+      if (item.room) uniqueRooms.add(item.room);
     });
     return Array.from(uniqueRooms).sort((a, b) => a.localeCompare(b));
   }, [allBookings]);
@@ -143,14 +270,21 @@ export default function ViewSchedule() {
       return allBookings;
     }
 
-    if (!currentUser.email) {
+    if (!currentUser.id && !currentUser.email) {
       return [];
     }
 
-    return allBookings.filter((item) =>
-      fallbackCreatorMatch(item.createdBy, currentUser.email)
-    );
-  }, [allBookings, selectedTab, currentUser.email]);
+    return allBookings.filter((item: any) => {
+      const byId =
+        currentUser.id && item.userId ? item.userId === currentUser.id : false;
+
+      const byEmail =
+        currentUser.email &&
+        fallbackCreatorMatch(item.createdBy, currentUser.email);
+
+      return byId || byEmail;
+    });
+  }, [allBookings, selectedTab, currentUser.id, currentUser.email]);
 
   const handleFiltersChange = (nextFilters: ScheduleFilters) => {
     setFilters(nextFilters);
@@ -158,80 +292,25 @@ export default function ViewSchedule() {
 
   const filteredBookings = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const startBoundary = filters.startDate
-      ? startOfDay(filters.startDate)
-      : null;
-    const endBoundary = filters.endDate ? endOfDay(filters.endDate) : null;
-    const today = new Date();
+    if (!normalizedSearch) {
+      return bookingsByTab;
+    }
 
     return bookingsByTab.filter((item) => {
-      if (filters.room && item.room !== filters.room) {
-        return false;
-      }
-
-      let bookingDate: Date | null = null;
-      if (filters.day || startBoundary || endBoundary) {
-        if (!item.date) {
-          return false;
-        }
-
-        try {
-          bookingDate = parseISO(item.date);
-        } catch {
-          return false;
-        }
-      }
-
-      if (filters.day && bookingDate) {
-        if (filters.day === "today" && !isSameDay(bookingDate, today)) {
-          return false;
-        }
-
-        if (
-          filters.day === "tomorrow" &&
-          !isSameDay(bookingDate, addDays(today, 1))
-        ) {
-          return false;
-        }
-
-        if (
-          filters.day === "this-week" &&
-          !isSameWeek(bookingDate, today, { weekStartsOn: 1 })
-        ) {
-          return false;
-        }
-      }
-
-      if (
-        startBoundary &&
-        bookingDate &&
-        isBefore(bookingDate, startBoundary)
-      ) {
-        return false;
-      }
-
-      if (endBoundary && bookingDate && isAfter(bookingDate, endBoundary)) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
       const candidates = [
         item.courseName,
         item.courseCode,
         item.typeLabel ?? "",
-        item.lecturer,
         item.room,
         item.weekday,
+        item.lecturer,
       ];
 
       return candidates.some((value) =>
         value?.toLowerCase().includes(normalizedSearch)
       );
     });
-  }, [bookingsByTab, filters, searchTerm]);
+  }, [bookingsByTab, searchTerm]);
 
   const handleTabChange = (value: "room" | "my") => {
     if (value === selectedTab) return;
@@ -250,6 +329,7 @@ export default function ViewSchedule() {
   return (
     <div className="flex min-h-screen justify-center py-10">
       <Card className="w-full max-w-4xl shadow-lg border border-gray-200">
+        {/* Header tabs: View / Book */}
         <div className="flex border-b border-gray-200">
           <button
             type="button"
@@ -260,7 +340,8 @@ export default function ViewSchedule() {
                 : "text-gray-500 hover:bg-gray-50"
             }`}
           >
-            <CalendarDays size={18} /> View Schedule
+            <CalendarDays size={18} />
+            View Schedule
           </button>
           <button
             type="button"
@@ -271,7 +352,8 @@ export default function ViewSchedule() {
                 : "text-gray-500 hover:bg-gray-50"
             }`}
           >
-            <Plus size={18} /> Book Room
+            <Plus size={18} />
+            Book Room
           </button>
         </div>
 
@@ -288,7 +370,19 @@ export default function ViewSchedule() {
           />
 
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <Schedule items={filteredBookings} pageSize={5} />
+            {isLoading ? (
+              <div className="text-sm text-gray-500">Loading schedule...</div>
+            ) : error ? (
+              <div className="text-sm text-red-500">
+                Error loading schedule: {error}
+              </div>
+            ) : (
+              <Schedule
+                items={filteredBookings}
+                pageSize={5}
+                searchTerm={searchTerm}
+              />
+            )}
           </div>
         </CardContent>
       </Card>

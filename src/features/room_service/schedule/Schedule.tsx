@@ -5,25 +5,35 @@ import { BookingCard } from "@/components/BookingCard";
 import { Pagination } from "@/components/Pagination";
 import { ScheduleProps } from "@/type/type";
 
-export function Schedule({ items, pageSize = 5 }: ScheduleProps) {
+export function Schedule({ items, pageSize = 5, searchTerm }: ScheduleProps) {
   const [currentPage, setCurrentPage] = useState(1);
+
   const [currentUser, setCurrentUser] = useState<{
+    id: string | null;
     email: string | null;
     role: string | null;
-  }>({ email: null, role: null });
+  }>({ id: null, email: null, role: null });
 
   useEffect(() => {
     const syncUser = () => {
+      const id = localStorage.getItem("userId");
       const email = localStorage.getItem("userEmail");
       const role = localStorage.getItem("userRole");
-      setCurrentUser({ email, role });
+      setCurrentUser({ id, email, role });
     };
 
     syncUser();
     window.addEventListener("storage", syncUser);
-
     return () => window.removeEventListener("storage", syncUser);
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [items.length]);
 
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
 
@@ -46,25 +56,17 @@ export function Schedule({ items, pageSize = 5 }: ScheduleProps) {
 
   return (
     <div className="space-y-4">
-      {/* List BookingCard */}
+      {/* Booking list */}
       <div className="space-y-3">
-        {pageItems.map((item, index) => {
-          const normalizedCreator = item.createdBy?.toLowerCase();
-          const normalizedEmail = currentUser.email?.toLowerCase() ?? null;
-          const emailPrefix = normalizedEmail?.split("@")[0];
+        {pageItems.map((item: any, index) => {
+          const isOwner =
+            typeof item.userId === "string" &&
+            typeof currentUser.id === "string" &&
+            item.userId.trim() !== "" &&
+            currentUser.id.trim() !== "" &&
+            item.userId === currentUser.id;
 
-          const isOwner = Boolean(
-            normalizedCreator &&
-              normalizedEmail &&
-              (normalizedCreator === normalizedEmail || normalizedCreator === emailPrefix),
-          );
-
-          const canManage = Boolean(
-            item.onEdit &&
-              item.onDelete &&
-              currentUser.role === "lecturer" &&
-              isOwner,
-          );
+          const canManage = Boolean(item.onEdit && item.onDelete && isOwner);
 
           return <BookingCard key={index} {...item} canManage={canManage} />;
         })}
@@ -75,6 +77,7 @@ export function Schedule({ items, pageSize = 5 }: ScheduleProps) {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
+        siblingCount={1}
       />
     </div>
   );
